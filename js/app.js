@@ -20,7 +20,7 @@
   }
 
   function header() {
-    return '<header class="topbar"><a class="brand" href="#/">医识百科 · 网页版</a>' +
+    return '<header class="topbar"><a class="brand" href="#/">医学知识百科 · 网页版</a>' +
       '<span class="brand-sub">医学知识查询</span></header>';
   }
 
