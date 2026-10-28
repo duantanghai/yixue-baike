@@ -37,7 +37,7 @@
     const app = $('#app');
     app.innerHTML = header() +
       '<main class="home">' +
-      '<div class="hero"><div class="hero-title">医识百科助手</div>' +
+      '<div class="hero"><div class="hero-title">医学知识百科</div>' +
       '<div class="hero-sub">覆盖 ' + index.length + ' 种疾病 · 依据教材 / 指南 / 共识整理</div></div>' +
       '<div class="search-bar"><input id="home-search" class="search-input" placeholder="搜索疾病名称 / 别名 / 科室" />' +
       '<button id="home-search-btn" class="search-btn">搜索</button></div>' +
@@ -155,7 +155,7 @@
       app.querySelector('.detail-page').innerHTML = '<div class="empty">未找到该病种</div>';
       return;
     }
-    document.title = disease.name + ' · 医识百科';
+    document.title = disease.name + ' · 医学知识百科';
     const views = R.buildViews(disease);
     const aliases = (disease.aliases || []).filter(a => a !== disease.name);
     const meta = [disease.specialty, disease.tags && disease.tags.join(' · ')].filter(Boolean).join(' · ');
