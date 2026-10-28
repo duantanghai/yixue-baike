@@ -1,0 +1,9 @@
+# 构建/验证脚本，不纳入部署包
+_verify.js
+gen_web_data.js
+.git/
+
+# 系统/编辑器
+.DS_Store
+Thumbs.db
+*.log
