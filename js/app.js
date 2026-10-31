@@ -28,6 +28,16 @@
     return '<div class="disclaimer">⚠️ 本内容仅供医学学习参考，不能替代执业医师诊疗。如有不适请及时就医。</div>';
   }
 
+  // 关注公众号引导横幅（微信搜一搜 / 扫码关注「指南与共识学习」）
+  function followBanner() {
+    return '<section class="follow-banner">' +
+      '<div class="follow-title">📲 关注公众号，获取更多指南 / 共识解读</div>' +
+      '<a class="follow-img-link" href="images/follow-oa.jpg" target="_blank" rel="noopener">' +
+      '<img class="follow-img" src="images/follow-oa.jpg" alt="微信扫码或搜一搜关注「指南与共识学习」" loading="lazy" /></a>' +
+      '<div class="follow-tip">微信扫一扫，或搜「指南与共识学习」即可关注</div>' +
+      '</section>';
+  }
+
   // ---------- 首页 ----------
   async function renderHome() {
     const [index, specs] = await Promise.all([getIndex(), D.loadSpecialties()]);
@@ -47,6 +57,7 @@
       '<div id="spec-grid" class="grid"></div></div>' +
       '<div class="card block"><div class="sec-title">常见 / 推荐病种</div>' +
       '<div id="hot-list" class="disease-list"></div></div>' +
+      followBanner() +
       '<div class="footer">数据依据最新教材 / 指南 / 共识整理 · 持续扩充中</div>' +
       '</main>';
 
@@ -130,6 +141,7 @@
       '<div class="list-count">共 ' + list.length + ' 种</div></div>' +
       '<div id="list-box" class="disease-list"></div>' +
       (list.length ? '' : '<div class="empty">暂无数据</div>') +
+      followBanner() +
       '</main>';
 
     $('#list-box').innerHTML = list.map(d =>
@@ -169,6 +181,7 @@
       '</div>' +
       '<div class="detail-body">' + R.renderViews(views, disease.references, disease.updated) + '</div>' +
       disclaimer() +
+      followBanner() +
       '<div class="footer">数据依据最新教材 / 指南 / 共识整理 · 仅供学习参考</div>' +
       '</main>';
     app.innerHTML = header() + html;
