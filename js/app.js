@@ -167,7 +167,7 @@
       (meta ? '<div class="detail-meta">' + R.esc(meta) + '</div>' : '') +
       (aliases.length ? '<div class="detail-alias">别名：' + R.esc(aliases.join('、')) + '</div>' : '') +
       '</div>' +
-      '<div class="detail-body">' + R.renderViews(views) + '</div>' +
+      '<div class="detail-body">' + R.renderViews(views, disease.references, disease.updated) + '</div>' +
       disclaimer() +
       '<div class="footer">数据依据最新教材 / 指南 / 共识整理 · 仅供学习参考</div>' +
       '</main>';
@@ -182,7 +182,62 @@
         if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
       });
     });
+
+    // 教材插图点击放大预览（雪碧图定位，等比放大至视口）
+    app.querySelectorAll('.fig-img').forEach(el => {
+      const open = () => openLightbox(el.closest('.fig-wrap'));
+      el.addEventListener('click', open);
+      el.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); } });
+    });
+
     window.scrollTo(0, 0);
+  }
+
+  // ---------- 教材插图放大预览（雪碧图定位，等比放大至视口） ----------
+  let _lb = null;
+  function openLightbox(figWrap) {
+    if (!figWrap) return;
+    const sprite = figWrap.getAttribute('data-sprite');
+    const x = +figWrap.dataset.x, y = +figWrap.dataset.y,
+          w = +figWrap.dataset.w, h = +figWrap.dataset.h,
+          sw = +figWrap.dataset.sw, sh = +figWrap.dataset.sh;
+    if (!_lb) {
+      _lb = document.createElement('div');
+      _lb.className = 'lb-mask';
+      _lb.innerHTML = '<div class="lb-close" aria-label="关闭">×</div><div class="lb-box"></div><div class="lb-tip">点击空白处关闭</div>';
+      document.body.appendChild(_lb);
+      _lb.addEventListener('click', e => { if (e.target === _lb || e.target.classList.contains('lb-close')) closeLightbox(); });
+    }
+    const box = _lb.querySelector('.lb-box');
+    const vw = window.innerWidth, vh = window.innerHeight;
+    if (w && h) {
+      let W = vw * 0.92, H = W * h / w;
+      if (H > vh * 0.92) { H = vh * 0.92; W = H * w / h; }
+      box.style.width = W + 'px';
+      box.style.height = H + 'px';
+    } else {
+      box.style.width = (vw * 0.9) + 'px';
+      box.style.height = (vh * 0.9) + 'px';
+    }
+    if (sw && sh && w && h) {
+      const sx = (sw / w) * 100, sy = (sh / h) * 100;
+      const px = (w === sw) ? 0 : (-x / (w - sw)) * 100;
+      const py = (h === sh) ? 0 : (-y / (h - sh)) * 100;
+      box.style.backgroundImage = "url('" + sprite + "')";
+      box.style.backgroundSize = sx + '% ' + sy + '%';
+      box.style.backgroundPosition = px + '% ' + py + '%';
+      box.style.backgroundRepeat = 'no-repeat';
+    } else {
+      box.style.backgroundImage = "url('" + sprite + "')";
+      box.style.backgroundSize = 'contain';
+      box.style.backgroundPosition = 'center';
+    }
+    _lb.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+  }
+  function closeLightbox() {
+    if (_lb) _lb.style.display = 'none';
+    document.body.style.overflow = '';
   }
 
   // ---------- 路由 ----------

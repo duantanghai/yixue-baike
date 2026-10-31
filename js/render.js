@@ -125,8 +125,22 @@
     return { body: v.body || '', points: v.points || [], table: v.table || null, tables: normTables(v) };
   }
 
-  // 把一个 disease 构建成 views（与小程序 onLoad 一致，去掉 images 部分）
+  // 把一个 disease 构建成 views（与小程序 onLoad 完全一致：含教材插图归属 / 教材插图区 / 参考来源）
   function buildViews(disease) {
+    // 教材真实配图按 sec 挂到对应小节/子段；sec 为空或无法归类 → 统一进「教材插图」区
+    const figs = (Array.isArray(disease.images) ? disease.images : []).map(f => ({
+      src: f.src || '', caption: f.caption || '', sec: f.sec || '', sprite: f.sprite || null
+    }));
+    const byView = {};   // 顶层段 key -> [fig]
+    const byChild = {};  // 子段 key（symptoms/signs/treatment_*）-> [fig]
+    const leftover = [];
+    for (const f of figs) {
+      const sec = f.sec || '';
+      if (!sec) { leftover.push(f); continue; }
+      if (SUBSECTION_TITLES[sec]) { (byChild[sec] = byChild[sec] || []).push(f); continue; }
+      (byView[sec] = byView[sec] || []).push(f);
+    }
+
     const viewsAll = SECTIONS.map(s => {
       if (s.group) {
         const children = s.group
@@ -134,11 +148,12 @@
             const n = norm(disease[gk]);
             return {
               key: gk, title: SUBSECTION_TITLES[gk] || gk,
-              body: n.body, points: n.points, table: n.table, tables: n.tables, images: []
+              body: n.body, points: n.points, table: n.table, tables: n.tables,
+              images: byChild[gk] || []
             };
           })
-          .filter(c => c.body || c.points.length || c.tables.length);
-        return { key: s.key, title: s.title, body: '', points: [], table: null, tables: [], images: [], children: children };
+          .filter(c => c.body || c.points.length || c.tables.length || c.images.length);
+        return { key: s.key, title: s.title, body: '', points: [], table: null, tables: [], images: byView[s.key] || [], children: children };
       }
       if (s.key === 'diagnosis') {
         const dg = disease.diagnosis || {};
@@ -160,15 +175,60 @@
         return {
           key: s.key, title: s.title, body: dg.body || '',
           points: dg.points || [], table: dg.table || null,
-          tables: normTables(dg), images: [], children: children
+          tables: normTables(dg), images: byView[s.key] || [], children: children
         };
       }
       const n = norm(disease[s.key]);
-      return { key: s.key, title: s.title, body: n.body, points: n.points, table: n.table, tables: n.tables, images: [], children: null };
+      return { key: s.key, title: s.title, body: n.body, points: n.points, table: n.table, tables: n.tables, images: byView[s.key] || [], children: null };
     });
-    return viewsAll.filter(v =>
+
+    // 不是每种疾病都必须把 12 段都写上：无正文/要点/表格/配图/子段的顶层段直接不渲染
+    const views = viewsAll.filter(v =>
       v.body || (v.points && v.points.length) || (v.tables && v.tables.length) ||
+      (v.images && v.images.length) ||
       (v.children && v.children.length));
+
+    // 「教材插图」区：未归入具体小节的配图，插在「概述」之后
+    if (leftover.length) {
+      const oi = views.findIndex(v => v.key === 'overview');
+      views.splice(oi + 1, 0, {
+        key: 'figures', title: '教材插图', body: '', points: [], table: null, tables: [],
+        images: leftover, children: null
+      });
+    }
+    return views;
+  }
+
+  // 教材插图：复用小程序雪碧图坐标，用 CSS background 定位还原裁切区域（响应式，等比缩放）
+  function figStyle(s) {
+    const w = s.w, h = s.h, sw = s.sw, sh = s.sh, x = s.x, y = s.y;
+    const sx = (sw / w) * 100, sy = (sh / h) * 100;
+    const px = (w === sw) ? 0 : (-x / (w - sw)) * 100;
+    const py = (h === sh) ? 0 : (-y / (h - sh)) * 100;
+    return {
+      size: sx.toFixed(4) + '% ' + sy.toFixed(4) + '%',
+      pos: px.toFixed(4) + '% ' + py.toFixed(4) + '%',
+      aspect: (w && h) ? (w + ' / ' + h) : 'auto'
+    };
+  }
+  function renderFigure(fig) {
+    const src = fig.src || '';
+    const s = fig.sprite;
+    if (!s || !s.w || !s.h) {
+      return '<figure class="fig-wrap"><img class="fig-img-raw" src="' + esc(src) + '" alt="' + esc(fig.caption || '') + '" />' +
+        (fig.caption ? '<figcaption class="fig-cap">' + esc(fig.caption) + '</figcaption>' : '') + '</figure>';
+    }
+    const st = figStyle(s);
+    const data = 'data-sprite="' + esc(src) + '" data-x="' + (s.x || 0) + '" data-y="' + (s.y || 0) +
+      '" data-w="' + (s.w || 0) + '" data-h="' + (s.h || 0) + '" data-sw="' + (s.sw || 0) + '" data-sh="' + (s.sh || 0) + '"';
+    const inner = '<div class="fig-img" tabindex="0" role="img" aria-label="' + esc(fig.caption || '教材插图') + '" ' +
+      'style="background-image:url(\'' + esc(src) + '\');background-size:' + st.size + ';background-position:' + st.pos + ';aspect-ratio:' + st.aspect + ';"></div>';
+    const cap = fig.caption ? '<figcaption class="fig-cap">' + esc(fig.caption) + '</figcaption>' : '';
+    return '<figure class="fig-wrap" ' + data + '>' + inner + cap + '</figure>';
+  }
+  function renderFigures(arr) {
+    if (!arr || !arr.length) return '';
+    return '<div class="figs">' + arr.map(renderFigure).join('') + '</div>';
   }
 
   // ---------- HTML 转义与渲染 ----------
@@ -208,10 +268,11 @@
     }
     const tables = v.tables || [];
     tables.forEach(t => { h += renderTable(t); });
+    if (v.images && v.images.length) h += renderFigures(v.images);
     return h;
   }
 
-  function renderViews(views) {
+  function renderViews(views, refs, updated) {
     if (!views || !views.length) return '<p class="empty">该词条暂无详细内容。</p>';
     let nav = '<nav class="sec-nav">';
     views.forEach(v => { nav += '<a class="sec-nav-item" href="#sec-' + v.key + '">' + esc(v.title) + '</a>'; });
@@ -228,10 +289,17 @@
       }
       body += '</section>';
     });
+    // 参考来源（与小程序底部卡片一致）
+    if (refs && refs.length) {
+      body += '<section class="sec ref-sec"><h2 class="sec-title">参考来源</h2>' +
+        refs.map(r => '<div class="ref-item">· ' + esc(r) + '</div>').join('') +
+        (updated ? '<div class="ref-update">内容核对日期：' + esc(updated) + '</div>' : '') +
+        '</section>';
+    }
     return nav + body;
   }
 
   global.MedRender = {
-    SECTIONS, SUBSECTION_TITLES, buildCells, normTables, norm, buildViews, renderViews, renderTable, esc
+    SECTIONS, SUBSECTION_TITLES, buildCells, normTables, norm, buildViews, renderViews, renderTable, renderFigures, renderFigure, esc
   };
 })(window);
