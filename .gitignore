@@ -7,3 +7,7 @@ gen_web_data.js
 .DS_Store
 Thumbs.db
 *.log
+.workbuddy/
+
+# 本地交接说明（不进部署包）
+交接说明.txt

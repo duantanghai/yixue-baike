@@ -47,6 +47,7 @@
     const app = $('#app');
     app.innerHTML = header() +
       '<main class="home">' +
+      followBanner() +
       '<div class="hero"><div class="hero-title">医学知识百科</div>' +
       '<div class="hero-sub">覆盖 ' + index.length + ' 种疾病 · 依据教材 / 指南 / 共识整理</div></div>' +
       '<div class="search-bar"><input id="home-search" class="search-input" placeholder="搜索疾病名称 / 别名 / 科室" />' +
@@ -57,7 +58,6 @@
       '<div id="spec-grid" class="grid"></div></div>' +
       '<div class="card block"><div class="sec-title">常见 / 推荐病种</div>' +
       '<div id="hot-list" class="disease-list"></div></div>' +
-      followBanner() +
       '<div class="footer">数据依据最新教材 / 指南 / 共识整理 · 持续扩充中</div>' +
       '</main>';
 
